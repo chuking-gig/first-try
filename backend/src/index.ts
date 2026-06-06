@@ -94,7 +94,7 @@ app.get('/api/word', async (req: Request, res: Response) => {
     console.error('[Server Error] Failed to fetch random word:', error);
     res.status(500).json({ 
       error: 'Failed to fetch random word', 
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      debug_message: error.message 
     });
   }
 });
