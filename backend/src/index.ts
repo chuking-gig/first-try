@@ -4,12 +4,28 @@ import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
+import { exec } from 'child_process';
 
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5001;
+
+// Auto-sync database schema on startup
+async function syncDatabase() {
+  console.log('[DB] Checking database schema sync...');
+  return new Promise((resolve) => {
+    exec('npx prisma db push', (error, stdout, stderr) => {
+      if (error) {
+        console.error('[DB] Sync error:', stderr);
+      } else {
+        console.log('[DB] Database synced successfully');
+      }
+      resolve();
+    });
+  });
+}
 
 app.use(cors());
 app.use(express.json());
@@ -208,6 +224,17 @@ app.get('/api/stats/:userId', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+async function startServer() {
+  try {
+    await syncDatabase();
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Fatal error during server startup:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
