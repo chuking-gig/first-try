@@ -103,6 +103,12 @@ function App() {
   const handleGuess = async () => {
     if (currentGuess.length !== 5) return;
     
+    if (!gameId) {
+      showNotification('Starting a new game session...', 'info');
+      await startNewGame();
+      return;
+    }
+    
     if (guesses.includes(currentGuess)) {
       showNotification('You already guessed this word!', 'error');
       return;
