@@ -21,4 +21,13 @@ model GameResult {
   success   Boolean
   attempts  Int
   createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id       Int           @id @default(autoincrement())
+  username String        @unique
+  password String
+  results  GameResult[]
 }

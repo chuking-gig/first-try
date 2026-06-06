@@ -1,7 +1,9 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -12,32 +14,168 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+// In-memory store for active games: gameId -> { word, attempts }
+const games = new Map<string, { word: string, attempts: number }>();
+
 // Basic Health Check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Backend is running' });
 });
 
-// Get a random word
-app.get('/api/word', async (req, res) => {
-  const count = await prisma.word.count();
-  const randomIndex = Math.floor(Math.random() * count);
-  const word = await prisma.word.findMany({
-    skip: randomIndex,
-    take: 1,
-  });
-  res.json(word[0]);
+// --- Authentication Endpoints ---
+app.post('/api/signup', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: { username, password: hashedPassword },
+    });
+    res.status(201).json({ message: 'User created successfully', userId: user.id });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error during signup' });
+  }
 });
 
-// Validate a guess
-app.post('/api/guess', async (req, res) => {
-  const { guess, targetWord } = req.body;
-  // TODO: Implement color feedback logic (green, yellow, gray)
-  const result = guess.split('').map((letter: string, index: number) => {
+app.post('/api/login', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    res.json({ message: 'Login successful', userId: user.id, username: user.username });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error during login' });
+  }
+});
+
+// Start a new game and get a gameId
+app.get('/api/word', async (req: Request, res: Response) => {
+  try {
+    const count = await prisma.word.count();
+    if (count === 0) {
+      return res.status(500).json({ error: 'No words found in database. Please seed it.' });
+    }
+    const randomIndex = Math.floor(Math.random() * count);
+    const words = await prisma.word.findMany({
+      skip: randomIndex,
+      take: 1,
+    });
+    
+    const targetWord = words[0].text;
+    const gameId = uuidv4();
+    games.set(gameId, { word: targetWord, attempts: 0 });
+    
+    res.json({ gameId });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch random word' });
+  }
+});
+
+// Validate a guess using gameId
+app.post('/api/guess', async (req: Request, res: Response) => {
+  const { guess, gameId, userId } = req.body;
+  
+  if (!gameId || !games.has(gameId)) {
+    return res.status(400).json({ error: 'Invalid or expired game session' });
+  }
+
+  // Check if the guess is a valid 5-letter word from our dictionary
+  const validWord = await prisma.word.findUnique({
+    where: { text: (guess as string).toUpperCase() },
+  });
+
+  if (!validWord) {
+    return res.status(400).json({ error: 'Word not in word list' });
+  }
+
+  const session = games.get(gameId)!;
+  const targetWord = session.word;
+  session.attempts += 1;
+  
+  const result = (guess as string).split('').map((letter: string, index: number) => {
     if (letter === targetWord[index]) return 'green';
     if (targetWord.includes(letter)) return 'yellow';
     return 'gray';
   });
-  res.json({ result });
+
+  const response: any = { result };
+  
+  // Reveal word if won OR if max attempts (6) reached
+  if (guess === targetWord || session.attempts >= 6) {
+    response.targetWord = targetWord;
+    
+    // Save result to database
+    if (userId) {
+      await prisma.gameResult.create({
+        data: {
+          word: targetWord,
+          success: guess === targetWord,
+          attempts: session.attempts,
+          userId: userId,
+        },
+      });
+    }
+    
+    games.delete(gameId); // End game session
+  }
+
+  res.json(response);
+});
+
+// Performance Analytics Endpoint
+app.get('/api/stats/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  try {
+    const uId = parseInt(userId as string);
+
+    // User Stats
+    const userResults = await prisma.gameResult.findMany({ where: { userId: uId } });
+    const totalGames = userResults.length;
+    const passed = userResults.filter(r => r.success).length;
+    const failed = totalGames - passed;
+    const avgAttempts = totalGames > 0 
+      ? userResults.reduce((acc, r) => acc + r.attempts, 0) / totalGames 
+      : 0;
+
+    // Global Stats
+    const allResults = await prisma.gameResult.findMany();
+    const globalTotal = allResults.length;
+    const globalPassed = allResults.filter(r => r.success).length;
+    const globalAvgAttempts = globalTotal > 0 
+      ? allResults.reduce((acc, r) => acc + r.attempts, 0) / globalTotal 
+      : 0;
+
+    res.json({
+      user: {
+        totalGames,
+        passed,
+        failed,
+        avgAttempts: parseFloat(avgAttempts.toFixed(2)),
+        winRate: totalGames > 0 ? parseFloat(((passed / totalGames) * 100).toFixed(2)) : 0,
+      },
+      global: {
+        avgAttempts: parseFloat(globalAvgAttempts.toFixed(2)),
+        winRate: globalTotal > 0 ? parseFloat(((globalPassed / globalTotal) * 100).toFixed(2)) : 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
 });
 
 app.listen(PORT, () => {
