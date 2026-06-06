@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5001;
 
 // Auto-sync database schema on startup
-async function syncDatabase() {
+async function syncDatabase(): Promise<void> {
   console.log('[DB] Checking database schema sync...');
   return new Promise((resolve) => {
     exec('npx prisma db push', (error, stdout, stderr) => {
