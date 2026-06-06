@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import confetti from 'canvas-confetti';
 
 type FeedbackColor = 'green' | 'yellow' | 'gray' | 'none';
 type View = 'landing' | 'login' | 'signup' | 'game' | 'stats';
@@ -17,6 +18,42 @@ interface StatsData {
   };
 }
 
+// --- Helper Components ---
+
+const Tile = ({ char, color, isCurrent, isShaking, isPopping, isFlipping, isWinning }: { 
+  char: string; 
+  color: FeedbackColor; 
+  isCurrent: boolean; 
+  isShaking: boolean;
+  isPopping?: boolean;
+  isFlipping?: boolean;
+  isWinning?: boolean;
+  index?: number;
+}) => {
+  const getColorClass = () => {
+    switch (color) {
+      case 'green': return 'bg-green-600 border-green-600 text-white';
+      case 'yellow': return 'bg-yellow-600 border-yellow-600 text-white';
+      case 'gray': return 'bg-gray-600 border-gray-600 text-white';
+      default: return 'bg-transparent border-gray-600 text-white';
+    }
+  };
+
+  return (
+    <div style={{ animationDelay: isFlipping ? `${(index || 0) * 100}ms` : undefined }} className={`
+      w-12 h-12 sm:w-14 sm:h-14 border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold uppercase transition-all duration-500
+      ${getColorClass()}
+      ${isShaking ? 'animate-shake' : ''}
+      ${isPopping ? 'animate-pop' : ''}
+      ${isFlipping ? 'animate-flip' : ''}
+      ${isWinning ? 'animate-bounce-victory' : ''}
+      ${char && !isCurrent && color === 'none' ? 'border-gray-600' : ''}
+    `}>
+      {char}
+    </div>
+  );
+};
+
 function App() {
   const [view, setView] = useState<View>('landing');
   const [isInitializing, setIsInitializing] = useState(true);
@@ -32,10 +69,24 @@ function App() {
   const [currentGuess, setCurrentGuess] = useState('');
   const [feedback, setFeedback] = useState<FeedbackColor[][]>([]);
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [isShaking, setIsShaking] = useState(false);
+  const [poppingIndex, setPoppingIndex] = useState<number | null>(null);
+  const [flippingRow, setFlippingRow] = useState<number | null>(null);
 
   const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5001/api' 
     : 'https://first-try-vl8h.onrender.com/api';
+
+  const playSfx = (type: 'pop' | 'submit' | 'win' | 'lose') => {
+    const sfxMap = {
+      pop: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+      submit: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+      win: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
+      lose: 'https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3',
+    };
+    const audio = new Audio(sfxMap[type]);
+    audio.play().catch(e => console.log('[SFX] Audio playback blocked or failed:', e));
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -151,6 +202,28 @@ function App() {
     }
   };
 
+  const shareResult = () => {
+    const emojiMap: Record<FeedbackColor, string> = {
+      'green': '🟩',
+      'yellow': '🟨',
+      'gray': '⬜',
+      'none': '⬜'
+    };
+
+    const resultGrid = feedback.map(row => 
+      row.map(color => emojiMap[color]).join('')
+    ).join('\n');
+
+    const text = `Wordle Clone ${guesses.length}/6\n${resultGrid}`;
+    
+    if (navigator.share) {
+      navigator.share({ title: 'Wordle Result', text });
+    } else {
+      navigator.clipboard.writeText(text);
+      showNotification('Result copied to clipboard!', 'info');
+    }
+  };
+
   const handleGuess = async () => {
     console.log('[Guess] Attempting guess:', currentGuess);
     console.log('[Guess] Current gameId state:', gameId);
@@ -188,10 +261,17 @@ function App() {
         if (data.error === 'Word not in word list') {
           setIsShaking(true);
           setTimeout(() => setIsShaking(false), 500);
+          playSfx('lose');
         }
         showNotification(data.error || 'Invalid guess', 'error');
         return;
       }
+
+      playSfx('submit');
+      
+      // Trigger flipping animation for the current row
+      setFlippingRow(guesses.length);
+      setTimeout(() => setFlippingRow(null), 600);
 
       const newGuesses = [...guesses, currentGuess];
       const newFeedback = [...feedback, data.result];
@@ -204,6 +284,7 @@ function App() {
         setTargetWord(data.targetWord);
         if (currentGuess === data.targetWord) {
           setGameState('won');
+          playSfx('win');
           confetti({
             particleCount: 150,
             spread: 70,
@@ -212,9 +293,11 @@ function App() {
           });
         } else {
           setGameState('lost');
+          playSfx('lose');
         }
       } else if (newGuesses.length >= 6) {
         setGameState('lost');
+        playSfx('lose');
       }
     } catch (error) {
       console.error('Error submitting guess:', error);
@@ -229,7 +312,12 @@ function App() {
     } else if (key === 'BACKSPACE') {
       setCurrentGuess(prev => prev.slice(0, -1));
     } else if (currentGuess.length < 5 && /^[A-Z]$/.test(key)) {
+      const newIndex = currentGuess.length;
+      setPoppingIndex(newIndex);
+      setTimeout(() => setPoppingIndex(null), 100);
+      
       setCurrentGuess(prev => prev + key);
+      playSfx('pop');
     }
   };
 
@@ -270,10 +358,10 @@ function App() {
     }
 
     switch (bestColor) {
-      case 'green': return 'bg-green-600 text-white';
-      case 'yellow': return 'bg-yellow-600 text-white';
-      case 'gray': return 'bg-gray-700 text-gray-300';
-      default: return 'bg-gray-500 text-white';
+      case 'green': return 'bg-green-500 text-white shadow-sm';
+      case 'yellow': return 'bg-yellow-500 text-white shadow-sm';
+      case 'gray': return 'bg-gray-700 text-gray-400';
+      default: return 'bg-gray-600 text-gray-200';
     }
   };
 
@@ -287,7 +375,7 @@ function App() {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans">
         <div className="flex flex-col items-center gap-8">
           {/* Bouncing Wordle Grid Animation */}
           <div className="grid grid-cols-5 gap-2">
@@ -313,7 +401,7 @@ function App() {
 
   if (view === 'landing') {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans">
         {notification && (
           <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
             {notification.message}
@@ -345,7 +433,7 @@ function App() {
 
   if (view === 'login' || view === 'signup') {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans">
         {notification && (
           <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
             {notification.message}
@@ -404,7 +492,7 @@ function App() {
 
   if (view === 'stats') {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center p-4 font-sans">
         {notification && (
           <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
             {notification.message}
@@ -481,7 +569,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-between p-4 font-sans">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-between p-4 font-sans">
       {notification && (
         <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
           {notification.message}
@@ -538,6 +626,9 @@ function App() {
                     index={j} 
                     isCurrent={isCurrent} 
                     isShaking={isShaking} 
+                    isPopping={isCurrent && poppingIndex === j}
+                    isFlipping={flippingRow === i}
+                    isWinning={gameState === 'won' && feedback[i]?.[j] === 'green'}
                   />
                 );
               })}
