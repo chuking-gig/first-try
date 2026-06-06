@@ -174,9 +174,9 @@ function App() {
     let maxPriority = 0;
     let bestColor: FeedbackColor = 'none';
 
-    feedback.forEach((row) => {
+    feedback.forEach((row, rowIndex) => {
       row.forEach((color, index) => {
-        if (guesses[feedback.indexOf(row)]?.[index] === key) {
+        if (guesses[rowIndex]?.[index] === key) {
           if (priority[color] > maxPriority) {
             maxPriority = priority[color];
             bestColor = color;
