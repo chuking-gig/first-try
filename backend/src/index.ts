@@ -90,8 +90,12 @@ app.get('/api/word', async (req: Request, res: Response) => {
     });
     
     res.json({ gameId });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch random word' });
+  } catch (error: any) {
+    console.error('[Server Error] Failed to fetch random word:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch random word', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 
