@@ -174,16 +174,18 @@ function App() {
     let maxPriority = 0;
     let bestColor: FeedbackColor = 'none';
 
-    feedback.forEach((row, rowIndex) => {
-      row.forEach((color, index) => {
+    for (let rowIndex = 0; rowIndex < feedback.length; rowIndex++) {
+      const row = feedback[rowIndex];
+      for (let index = 0; index < row.length; index++) {
+        const color = row[index];
         if (guesses[rowIndex]?.[index] === key) {
           if (priority[color] > maxPriority) {
             maxPriority = priority[color];
             bestColor = color;
           }
         }
-      });
-    });
+      }
+    }
 
     switch (bestColor) {
       case 'green': return 'bg-green-600 text-white';
