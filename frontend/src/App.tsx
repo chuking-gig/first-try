@@ -265,9 +265,24 @@ function App() {
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-sans">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xl font-bold tracking-widest uppercase text-blue-400">Loading Wordle...</p>
+        <div className="flex flex-col items-center gap-8">
+          {/* Bouncing Wordle Grid Animation */}
+          <div className="grid grid-cols-5 gap-2">
+            {[...Array(15)].map((_, i) => (
+              <div 
+                key={i} 
+                className="w-8 h-8 bg-gray-700 rounded-sm animate-bounce"
+                style={{ animationDelay: `${i * 100}ms` }}
+              ></div>
+            ))}
+          </div>
+          
+          <div className="text-center space-y-2">
+            <p className="text-2xl font-black tracking-widest uppercase text-blue-400 animate-pulse">
+              Waking up the tiles...
+            </p>
+            <p className="text-gray-500 text-sm italic">Just a moment!</p>
+          </div>
         </div>
       </div>
     );
