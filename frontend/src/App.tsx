@@ -488,10 +488,10 @@ function App() {
         </div>
       </header>
       
-      <div className="flex-grow flex flex-col items-center justify-center gap-2">
-        <div className="grid grid-rows-6 gap-2">
+      <div className="flex-grow flex flex-col items-center justify-center gap-4">
+        <div className="grid grid-rows-6 gap-1 sm:gap-2">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="grid grid-cols-5 gap-2">
+            <div key={i} className="grid grid-cols-5 gap-1 sm:gap-2">
               {[...Array(5)].map((_, j) => {
                 const char = i < guesses.length 
                   ? guesses[i][j] 
@@ -503,7 +503,7 @@ function App() {
                 const isCurrent = i === guesses.length;
 
                 return (
-                  <div key={j} className={`w-14 h-14 border-2 flex items-center justify-center text-3xl font-bold uppercase transition-colors duration-500 ${colorClass} ${isCurrent && char ? 'border-gray-400' : ''}`}>
+                  <div key={j} className={`w-10 h-10 sm:w-12 md:w-14 border-2 flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-bold uppercase transition-colors duration-500 ${colorClass} ${isCurrent && char ? 'border-gray-400' : ''}`}>
                     {char}
                   </div>
                 );
@@ -513,8 +513,8 @@ function App() {
         </div>
 
         {gameState !== 'playing' && (
-          <div className="mt-6 p-4 bg-gray-800 rounded-lg shadow-xl text-center animate-bounce">
-            <p className={`text-2xl font-bold ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}`}>
+          <div className="mt-4 p-4 bg-gray-800 rounded-lg shadow-xl text-center animate-bounce w-full max-w-xs">
+            <p className={`text-xl sm:text-2xl font-bold ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}`}>
               {gameState === 'won' ? '🎉 You Won!' : `❌ Game Over! Word was ${targetWord || 'Unknown'}`}
             </p>
             <button 
@@ -527,16 +527,16 @@ function App() {
         )}
       </div>
 
-      <div className="w-full max-w-md mb-8">
+      <div className="w-full max-w-md mb-8 px-2">
         <div className="flex flex-col gap-2">
           {keyboardRows.map((row, i) => (
-            <div key={i} className="flex justify-center gap-1.5">
+            <div key={i} className="flex justify-center gap-1 sm:gap-1.5">
               {row.map(key => (
                 <button
                   key={key}
                   onClick={() => onKeyPress(key)}
-                  className={`h-14 rounded font-bold uppercase transition-all active:scale-95 ${
-                    key.length > 1 ? 'px-3 text-xs' : 'w-11'
+                  className={`h-12 sm:h-14 rounded font-bold uppercase transition-all active:scale-95 ${
+                    key.length > 1 ? 'px-2 sm:px-3 text-[10px] sm:text-xs' : 'w-8 sm:w-10 md:w-11'
                   } ${getKeyboardKeyColor(key)}`}
                 >
                   {key === 'BACKSPACE' ? '⌫' : key}
