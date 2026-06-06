@@ -52,17 +52,28 @@ function App() {
     setIsGameLoading(true);
     try {
       const response = await fetch(`${API_URL}/word`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch game session');
+      }
+
       const data = await response.json();
       console.log('[Game] Received gameId from server:', data.gameId);
+      
+      if (!data.gameId) {
+        throw new Error('Server did not return a gameId');
+      }
+
       setGameId(data.gameId);
       setGuesses([]);
       setFeedback([]);
       setCurrentGuess('');
       setGameState('playing');
       setTargetWord('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Game] Failed to start game:', error);
-      showNotification('Failed to connect to server', 'error');
+      showNotification(error.message || 'Failed to connect to server', 'error');
     } finally {
       setIsGameLoading(false);
       console.log('[Game] Game loading finished.');
