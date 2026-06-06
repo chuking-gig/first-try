@@ -185,6 +185,10 @@ function App() {
       
       if (!response.ok) {
         console.error('[Guess] Server returned error:', data.error);
+        if (data.error === 'Word not in word list') {
+          setIsShaking(true);
+          setTimeout(() => setIsShaking(false), 500);
+        }
         showNotification(data.error || 'Invalid guess', 'error');
         return;
       }
@@ -198,7 +202,17 @@ function App() {
 
       if (data.targetWord) {
         setTargetWord(data.targetWord);
-        setGameState(currentGuess === data.targetWord ? 'won' : 'lost');
+        if (currentGuess === data.targetWord) {
+          setGameState('won');
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#22c55e', '#3b82f6', '#ffffff']
+          });
+        } else {
+          setGameState('lost');
+        }
       } else if (newGuesses.length >= 6) {
         setGameState('lost');
       }
@@ -518,9 +532,13 @@ function App() {
                 const isCurrent = i === guesses.length;
 
                 return (
-                  <div key={j} className={`w-10 h-10 sm:w-12 md:w-14 border-2 flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-bold uppercase transition-colors duration-500 ${colorClass} ${isCurrent && char ? 'border-gray-400' : ''}`}>
-                    {char}
-                  </div>
+                  <Tile 
+                    char={char} 
+                    color={feedback[i]?.[j] || 'none'} 
+                    index={j} 
+                    isCurrent={isCurrent} 
+                    isShaking={isShaking} 
+                  />
                 );
               })}
             </div>
