@@ -48,10 +48,12 @@ function App() {
   };
 
   const startNewGame = async () => {
+    console.log('[Game] Starting new game...');
     setIsGameLoading(true);
     try {
       const response = await fetch(`${API_URL}/word`);
       const data = await response.json();
+      console.log('[Game] Received gameId from server:', data.gameId);
       setGameId(data.gameId);
       setGuesses([]);
       setFeedback([]);
@@ -59,10 +61,11 @@ function App() {
       setGameState('playing');
       setTargetWord('');
     } catch (error) {
-      console.error('Failed to start game:', error);
+      console.error('[Game] Failed to start game:', error);
       showNotification('Failed to connect to server', 'error');
     } finally {
       setIsGameLoading(false);
+      console.log('[Game] Game loading finished.');
     }
   };
 
@@ -105,28 +108,39 @@ function App() {
   };
 
   const handleGuess = async () => {
-    if (currentGuess.length !== 5) return;
+    console.log('[Guess] Attempting guess:', currentGuess);
+    console.log('[Guess] Current gameId state:', gameId);
+    
+    if (currentGuess.length !== 5) {
+      console.log('[Guess] Aborted: guess length is not 5');
+      return;
+    }
     
     if (!gameId) {
+      console.warn('[Guess] Aborted: No gameId found! Attempting to recover...');
       showNotification('Starting a new game session...', 'info');
       await startNewGame();
       return;
     }
     
     if (guesses.includes(currentGuess)) {
+      console.log('[Guess] Aborted: word already guessed');
       showNotification('You already guessed this word!', 'error');
       return;
     }
     
     try {
+      console.log('[Guess] Sending request to /api/guess with gameId:', gameId);
       const response = await fetch(`${API_URL}/guess`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ guess: currentGuess, gameId, userId: user?.userId }),
       });
       const data = await response.json();
+      console.log('[Guess] Server response:', data);
       
       if (!response.ok) {
+        console.error('[Guess] Server returned error:', data.error);
         showNotification(data.error || 'Invalid guess', 'error');
         return;
       }
