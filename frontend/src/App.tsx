@@ -31,7 +31,7 @@ function App() {
   const [feedback, setFeedback] = useState<FeedbackColor[][]>([]);
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
 
-  const API_URL = 'http://localhost:5001/api';
+  const API_URL = 'https://first-try-vl8h.onrender.com/api';
 
   useEffect(() => {
     if (view === 'game') {
