@@ -19,6 +19,7 @@ interface StatsData {
 
 function App() {
   const [view, setView] = useState<View>('landing');
+  const [isInitializing, setIsInitializing] = useState(true);
   const [user, setUser] = useState<{ username: string; userId: number } | null>(null);
   const [authError, setAuthError] = useState('');
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -32,7 +33,23 @@ function App() {
   const [feedback, setFeedback] = useState<FeedbackColor[][]>([]);
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
 
-  const API_URL = 'https://first-try-vl8h.onrender.com/api';
+  const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:5001/api' 
+    : 'https://first-try-vl8h.onrender.com/api';
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // Just a simple ping to the server to check if it's awake
+        await fetch(`${API_URL}/health`);
+      } catch (e) {
+        console.log('Server is still sleeping...');
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    init();
+  }, []);
 
   useEffect(() => {
     if (view === 'game') {
@@ -50,6 +67,12 @@ function App() {
   const startNewGame = async () => {
     console.log('[Game] Starting new game...');
     setIsGameLoading(true);
+    
+    // Timer to show 'Waking up' message if server is slow (Cold Start)
+    const wakeUpTimer = setTimeout(() => {
+      showNotification('Waking up server... this may take a moment on first load', 'info');
+    }, 3000);
+
     try {
       const response = await fetch(`${API_URL}/word`);
       
@@ -75,6 +98,7 @@ function App() {
       console.error('[Game] Failed to start game:', error);
       showNotification(error.message || 'Failed to connect to server', 'error');
     } finally {
+      clearTimeout(wakeUpTimer);
       setIsGameLoading(false);
       console.log('[Game] Game loading finished.');
     }
@@ -237,6 +261,17 @@ function App() {
   ];
 
   // --- View Components ---
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-sans">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xl font-bold tracking-widest uppercase text-blue-400">Loading Wordle...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'landing') {
     return (
