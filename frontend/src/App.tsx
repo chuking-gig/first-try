@@ -40,10 +40,18 @@ function App() {
   useEffect(() => {
     const init = async () => {
       try {
-        // Just a simple ping to the server to check if it's awake
+        // 1. Check for persisted user session
+        const savedUser = localStorage.getItem('wordle_user');
+        if (savedUser) {
+          console.log('[Auth] Restoring persisted session...');
+          setUser(JSON.parse(savedUser));
+          setView('game'); // Go straight to game if remembered
+        }
+
+        // 2. Ping server to check if it's awake
         await fetch(`${API_URL}/health`);
       } catch (e) {
-        console.log('Server is still sleeping...');
+        console.log('Server is still sleeping or session error...');
       } finally {
         setIsInitializing(false);
       }
@@ -132,6 +140,7 @@ function App() {
 
       if (endpoint === 'login') {
         setUser({ username: data.username, userId: data.userId });
+        localStorage.setItem('wordle_user', JSON.stringify({ username: data.username, userId: data.userId }));
         setView('game');
       } else {
         showNotification('Account created! Please login.', 'info');
@@ -480,7 +489,11 @@ function App() {
           </button>
           <span className="text-sm font-medium text-gray-400">{user?.username}</span>
           <button 
-            onClick={() => { setUser(null); setView('landing'); }}
+            onClick={() => { 
+              setUser(null); 
+              localStorage.removeItem('wordle_user'); 
+              setView('landing'); 
+            }}
             className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded border border-gray-600 transition-colors"
           >
             Logout
