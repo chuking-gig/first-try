@@ -25,6 +25,7 @@ function App() {
   const [notification, setNotification] = useState<{ message: string; type: 'info' | 'error' } | null>(null);
   
   const [gameId, setGameId] = useState('');
+  const [isGameLoading, setIsGameLoading] = useState(false);
   const [targetWord, setTargetWord] = useState('');
   const [guesses, setGuesses] = useState<string[]>([]);
   const [currentGuess, setCurrentGuess] = useState('');
@@ -47,6 +48,7 @@ function App() {
   };
 
   const startNewGame = async () => {
+    setIsGameLoading(true);
     try {
       const response = await fetch(`${API_URL}/word`);
       const data = await response.json();
@@ -59,6 +61,8 @@ function App() {
     } catch (error) {
       console.error('Failed to start game:', error);
       showNotification('Failed to connect to server', 'error');
+    } finally {
+      setIsGameLoading(false);
     }
   };
 
@@ -147,7 +151,7 @@ function App() {
   };
 
   const onKeyPress = (key: string) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || isGameLoading) return;
     if (key === 'ENTER') {
       handleGuess();
     } else if (key === 'BACKSPACE') {
