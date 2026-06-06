@@ -473,28 +473,30 @@ function App() {
           {notification.message}
         </div>
       )}
-      <header className="w-full max-w-md flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
-        <div className="flex items-center gap-4">
+      <header className="w-full max-w-md flex justify-between items-center border-b border-gray-700 pb-2 mb-4 px-2">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           <button onClick={() => setView('landing')} className="text-gray-400 hover:text-white transition-colors">
             ←
           </button>
-          <h1 className="text-3xl font-bold tracking-widest uppercase">Wordle</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest uppercase">Wordle</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
           <button 
             onClick={() => setView('stats')}
-            className="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-full font-bold transition-colors shadow-md"
+            className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-700 px-2 sm:px-3 py-1 rounded-full font-bold transition-colors shadow-md whitespace-nowrap"
           >
-            My Performance
+            {window.innerWidth < 640 ? 'Stats' : 'My Performance'}
           </button>
-          <span className="text-sm font-medium text-gray-400">{user?.username}</span>
+          <span className="text-xs sm:text-sm font-medium text-gray-400 truncate max-w-[60px] sm:max-w-none">
+            {user?.username}
+          </span>
           <button 
             onClick={() => { 
               setUser(null); 
               localStorage.removeItem('wordle_user'); 
               setView('landing'); 
             }}
-            className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded border border-gray-600 transition-colors"
+            className="text-[10px] sm:text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded border border-gray-600 transition-colors whitespace-nowrap"
           >
             Logout
           </button>
