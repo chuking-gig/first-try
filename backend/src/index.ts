@@ -14,11 +14,12 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// In-memory store for active games: gameId -> { word, attempts }
-const games = new Map<string, { word: string, attempts: number }>();
+// Remove the in-memory store for active games
+// const games = new Map<string, { word: string, attempts: number }>();
 
 // Basic Health Check
 app.get('/api/health', (req: Request, res: Response) => {
+
   res.json({ status: 'ok', message: 'Backend is running' });
 });
 
@@ -78,7 +79,15 @@ app.get('/api/word', async (req: Request, res: Response) => {
     
     const targetWord = words[0].text;
     const gameId = uuidv4();
-    games.set(gameId, { word: targetWord, attempts: 0 });
+
+    // Save session to database
+    await prisma.gameSession.create({
+      data: {
+        id: gameId,
+        word: targetWord,
+        attempts: 0
+      }
+    });
     
     res.json({ gameId });
   } catch (error) {
@@ -90,7 +99,16 @@ app.get('/api/word', async (req: Request, res: Response) => {
 app.post('/api/guess', async (req: Request, res: Response) => {
   const { guess, gameId, userId } = req.body;
   
-  if (!gameId || !games.has(gameId)) {
+  if (!gameId) {
+    return res.status(400).json({ error: 'Game ID is required' });
+  }
+
+  // Fetch session from database
+  const session = await prisma.gameSession.findUnique({
+    where: { id: gameId }
+  });
+
+  if (!session) {
     return res.status(400).json({ error: 'Invalid or expired game session' });
   }
 
@@ -103,10 +121,15 @@ app.post('/api/guess', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Word not in word list' });
   }
 
-  const session = games.get(gameId)!;
   const targetWord = session.word;
-  session.attempts += 1;
+  const attempts = session.attempts + 1;
   
+  // Update attempts in database
+  await prisma.gameSession.update({
+    where: { id: gameId },
+    data: { attempts }
+  });
+
   const result = (guess as string).split('').map((letter: string, index: number) => {
     if (letter === targetWord[index]) return 'green';
     if (targetWord.includes(letter)) return 'yellow';
@@ -116,7 +139,7 @@ app.post('/api/guess', async (req: Request, res: Response) => {
   const response: any = { result };
   
   // Reveal word if won OR if max attempts (6) reached
-  if (guess === targetWord || session.attempts >= 6) {
+  if (guess === targetWord || attempts >= 6) {
     response.targetWord = targetWord;
     
     // Save result to database
@@ -125,13 +148,16 @@ app.post('/api/guess', async (req: Request, res: Response) => {
         data: {
           word: targetWord,
           success: guess === targetWord,
-          attempts: session.attempts,
+          attempts: attempts,
           userId: userId,
         },
       });
     }
     
-    games.delete(gameId); // End game session
+    // End game session in database
+    await prisma.gameSession.delete({
+      where: { id: gameId }
+    });
   }
 
   res.json(response);

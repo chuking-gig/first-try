@@ -10,7 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model GameSession {
+  id        String   @id
+  word      String
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
 model Word {
+
   id   Int    @id @default(autoincrement())
   text String @unique
 }
