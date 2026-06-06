@@ -20,7 +20,7 @@ interface StatsData {
 
 // --- Helper Components ---
 
-const Tile = ({ char, color, isCurrent, isShaking, isPopping, isFlipping, isWinning }: { 
+const Tile = ({ char, color, isCurrent, isShaking, isPopping, isFlipping, isWinning, index }: { 
   char: string; 
   color: FeedbackColor; 
   isCurrent: boolean; 
@@ -202,25 +202,30 @@ function App() {
     }
   };
 
-  const shareResult = () => {
-    const emojiMap: Record<FeedbackColor, string> = {
-      'green': '🟩',
-      'yellow': '🟨',
-      'gray': '⬜',
-      'none': '⬜'
-    };
+  const handleAuth = async (endpoint: 'signup' | 'login', formData: any) => {
+    setAuthError('');
+    try {
+      const response = await fetch(`${API_URL}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
 
-    const resultGrid = feedback.map(row => 
-      row.map(color => emojiMap[color]).join('')
-    ).join('\n');
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
+      }
 
-    const text = `Wordle Clone ${guesses.length}/6\n${resultGrid}`;
-    
-    if (navigator.share) {
-      navigator.share({ title: 'Wordle Result', text });
-    } else {
-      navigator.clipboard.writeText(text);
-      showNotification('Result copied to clipboard!', 'info');
+      if (endpoint === 'login') {
+        setUser({ username: data.username, userId: data.userId });
+        localStorage.setItem('wordle_user', JSON.stringify({ username: data.username, userId: data.userId }));
+        setView('game');
+      } else {
+        showNotification('Account created! Please login.', 'info');
+        setView('login');
+      }
+    } catch (error: any) {
+      setAuthError(error.message);
     }
   };
 
@@ -613,10 +618,6 @@ function App() {
                 const char = i < guesses.length 
                   ? guesses[i][j] 
                   : (i === guesses.length ? currentGuess[j] : '');
-                const colorClass = feedback[i]?.[j] === 'green' ? 'bg-green-600 border-green-600' : 
-                                   feedback[i]?.[j] === 'yellow' ? 'bg-yellow-600 border-yellow-600' : 
-                                   feedback[i]?.[j] === 'gray' ? 'bg-gray-600 border-gray-600' : 
-                                   'bg-transparent border-gray-600';
                 const isCurrent = i === guesses.length;
 
                 return (
