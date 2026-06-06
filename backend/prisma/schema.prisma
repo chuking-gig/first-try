@@ -1,0 +1,24 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Word {
+  id   Int    @id @default(autoincrement())
+  text String @unique
+}
+
+model GameResult {
+  id        Int      @id @default(autoincrement())
+  word      String
+  success   Boolean
+  attempts  Int
+  createdAt DateTime @default(now())
+}
