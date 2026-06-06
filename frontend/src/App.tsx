@@ -164,18 +164,28 @@ function App() {
   }, [currentGuess, gameState, view]);
 
   const getKeyboardKeyColor = (key: string): string => {
-    let maxColor: FeedbackColor = 'none';
-    feedback.forEach((row, rowIndex) => {
+    const priority: Record<FeedbackColor, number> = {
+      'green': 3,
+      'yellow': 2,
+      'gray': 1,
+      'none': 0
+    };
+
+    let maxPriority = 0;
+    let bestColor: FeedbackColor = 'none';
+
+    feedback.forEach((row) => {
       row.forEach((color, index) => {
-        if (guesses[rowIndex]?.[index] === key) {
-          if (color === 'green') maxColor = 'green';
-          else if (color === 'yellow' && maxColor !== 'green') maxColor = 'yellow';
-          else if (color === 'gray' && maxColor === 'none') maxColor = 'gray';
+        if (guesses[feedback.indexOf(row)]?.[index] === key) {
+          if (priority[color] > maxPriority) {
+            maxPriority = priority[color];
+            bestColor = color;
+          }
         }
       });
     });
 
-    switch (maxColor) {
+    switch (bestColor) {
       case 'green': return 'bg-green-600 text-white';
       case 'yellow': return 'bg-yellow-600 text-white';
       case 'gray': return 'bg-gray-700 text-gray-300';
