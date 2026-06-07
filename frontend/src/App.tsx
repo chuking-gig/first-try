@@ -202,33 +202,6 @@ function App() {
     }
   };
 
-  const handleAuth = async (endpoint: 'signup' | 'login', formData: any) => {
-    setAuthError('');
-    try {
-      const response = await fetch(`${API_URL}/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      if (endpoint === 'login') {
-        setUser({ username: data.username, userId: data.userId });
-        localStorage.setItem('wordle_user', JSON.stringify({ username: data.username, userId: data.userId }));
-        setView('game');
-      } else {
-        showNotification('Account created! Please login.', 'info');
-        setView('login');
-      }
-    } catch (error: any) {
-      setAuthError(error.message);
-    }
-  };
-
   const handleGuess = async () => {
     console.log('[Guess] Attempting guess:', currentGuess);
     console.log('[Guess] Current gameId state:', gameId);
