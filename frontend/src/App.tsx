@@ -379,9 +379,9 @@ function App() {
 
   if (view === 'landing') {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans relative">
         {notification && (
-          <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
+          <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
             {notification.message}
           </div>
         )}
@@ -411,9 +411,9 @@ function App() {
 
   if (view === 'login' || view === 'signup') {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 font-sans relative">
         {notification && (
-          <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
+          <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
             {notification.message}
           </div>
         )}
@@ -470,9 +470,9 @@ function App() {
 
   if (view === 'stats') {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center p-4 font-sans">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center p-4 font-sans relative">
         {notification && (
-          <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
+          <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
             {notification.message}
           </div>
         )}
@@ -547,9 +547,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-between p-4 font-sans">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-between p-4 font-sans relative">
       {notification && (
-        <div className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
+        <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 transition-all animate-bounce ${notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'} font-bold`}>
           {notification.message}
         </div>
       )}
